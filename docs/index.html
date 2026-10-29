@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Tanzania forest reserves and conservation areas</title>
+    <script type="module" crossorigin src="./assets/index-BCgFxWhe.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DQeNBsxG.css">
+  </head>
+  <body>
+    <div id="map" class="map">
+      <!-- Map title -->
+      <h1 class="map-title">
+        Tanzania forest reserves and conservation areas
+      </h1>
+            <!-- Abstract toggle via info-button -->
+      <div class="map-info">
+
+        <button
+          id="info-button"
+          class="info-button"
+          type="button"
+          aria-label="Show map abstract"
+          aria-expanded="false"
+          aria-controls="abstract-panel">
+          i
+        </button>
+
+        <!-- Abstract panel that appears when toggled -->
+        <div id="abstract-panel" class="abstract-panel" hidden>
+          
+          <h2> About this map</h2>
+
+          <p>
+            This webmap visualises the distribution of forest reserves, and national and international conservation areas in Tanzania. 
+            International conservation areas consist of UNESCO World Heritage sites, as well as internationally important wetlands (Ramsar Sites).
+          </p>
+
+          <p>
+            <strong>Data layers:</strong>
+            Protected planet.
+          </p>
+
+          <p>
+            <em>
+              UNEP-WCMC (2026). Protected Area Profile for 
+              United Republic of Tanzania from the World Database 
+              on Protected Areas, September 2026. 
+              Available at:
+            </em>
+
+            <a href="https://www.protectedplanet.net"
+              target="_blank"
+              rel="noopener noreferrer">
+              www.protectedplanet.net
+            </a>
+          </p>
+
+        </div>
+      </div>
+    </div>
+<!-- Map legend -->
+      <div id="legend">
+        <!-- Basemap selection -->
+        <p><strong>Basemap</strong></p>
+
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="osm" checked>
+          OpenStreetMap
+        </label>
+
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="topo">
+          OpenTopoMap
+        </label>
+
+        <hr>
+        <!-- Forest reserve layers -->
+        <p><strong>Forest reserves</strong></p>
+
+        <div class="legend-item">
+          <span class="legend-swatch forest-reserve"></span>
+          Forest reserve
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-swatch forest-plantation"></span>
+          Forest plantation
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-swatch nature-reserve"></span>
+          Nature forest reserve
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-swatch village-reserve"></span>
+          Village land forest reserve
+        </div>
+
+        <p><strong>National parks and conservation areas</strong></p>
+
+        <!-- Conservation area layers -->
+        <div class="legend-item">
+          <span class="legend-swatch national-park"></span>
+          National park
+        </div>
+
+        <div class="legend-item">
+          <span class="legend-swatch international-area"></span>
+          International conservation area
+        </div>
+      </div>
+  </body>
+</html>
