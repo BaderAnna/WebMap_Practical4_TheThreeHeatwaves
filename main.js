@@ -1,41 +1,38 @@
 // =====================================================================
-// Flood impacts on mobility: climate scenarios + Donkey Republic stations
+// Flood impacts on mobility: climate scenarios + Donkey bikes + Foeli bus stops
 // =====================================================================
 
 // ---------- Map ----------
 const map = new ol.Map({
   target: 'map',
-  layers: [ new ol.layer.Tile({ source: new ol.source.OSM() }) ],
+  layers: [ new ol.layer.Tile({ className: 'bw-basemap', source: new ol.source.OSM() }) ],
   view: new ol.View({
     center: ol.proj.fromLonLat([22.27, 60.45]), // Turku
     zoom: 11.5
   })
 });
 
+let currentScenario = 'none'; // 'none' | 'rcp45' | 'rcp85'
+let currentMode     = 'bikes'; // 'bikes' | 'bus'
+
+const SCENARIO_SHORT = { rcp45: 'RCP 4.5', rcp85: 'RCP 8.5' };
+
+const DATA_BASE = 'https://raw.githubusercontent.com/BaderAnna/WebMap_Practical4_TheThreeHeatwaves/main/data/';
+
 // =====================================================================
-// 1. Climate layers (WMS, Lounaistieto GeoServer)
+// 1. Climate layers: flood depth (WMS) + road risk (GeoJSON)
+//    Beide werden automatisch geladen, sobald ein RCP gewaehlt ist.
 // =====================================================================
 const GS    = 'https://geoserver.lounaistieto.fi/geoserver/';
 const TULVA = GS + 'tulvamallinnus/ows';
 const VESI  = GS + 'vesiensuojelu/ows';
 
-const SCENARIO_SHORT  = { rcp45: 'RCP 4.5', rcp85: 'RCP 8.5' };
-
-const THEMES = {
-  flood: {
-    title: 'Flood depth',
-    opacity: 0.7,
-    rcp45: { url: TULVA, layer: 'tulvaveden_syvyys_kohtalaiset_paastot' },
-    rcp85: { url: VESI,  layer: 'Veden_syvyys_huletulva_RCP8_5' },
-    // Legende fuer BEIDE Szenarien: die des RCP-8.5-Layers
-    legend: { url: VESI, layer: 'Veden_syvyys_huletulva_RCP8_5' }
-  }
-  // Public transport und Road network (WMS) wurden entfernt:
-  // Straßen kommen jetzt als GeoJSON von GitHub (siehe Abschnitt 2).
+const FLOOD_CFG = {
+  rcp45: { url: TULVA, layer: 'tulvaveden_syvyys_kohtalaiset_paastot' },
+  rcp85: { url: VESI,  layer: 'Veden_syvyys_huletulva_RCP8_5' },
+  // Legende fuer BEIDE Szenarien: die des RCP-8.5-Layers
+  legend: { url: VESI, layer: 'Veden_syvyys_huletulva_RCP8_5' }
 };
-
-let currentScenario = 'none'; // 'none' | 'rcp45' | 'rcp85'
-const olLayers = {};
 
 function makeSource(cfg) {
   return new ol.source.TileWMS({
@@ -46,61 +43,19 @@ function makeSource(cfg) {
   });
 }
 
-Object.keys(THEMES).forEach(function (key) {
-  const t = THEMES[key];
-  olLayers[key] = new ol.layer.Tile({
-    opacity: t.opacity,
-    visible: false,
-    source: makeSource(t.rcp45)
-  });
-  map.addLayer(olLayers[key]);
-});
-
 function legendUrl(cfg) {
   return cfg.url +
     '?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&layer=' +
     encodeURIComponent(cfg.layer);
 }
 
-// =====================================================================
-// 2. Donkey Republic stations (GeoJSON from GitHub)
-// =====================================================================
-const DONKEY_ORANGE    = '#f7711e';
-const AFFECTED_RED     = '#4b474764';
-const ZOOM_ICON        = 14;   // ab diesem Zoom: Fahrradsymbole, darunter: Cluster
-const CLUSTER_DISTANCE = 50;   // Pixelabstand zum Zusammenfassen
-const MATCH_TOLERANCE  = 5;    // Toleranz (Kartenmeter) beim Abgleich der Stationen
+const floodLayer = new ol.layer.Tile({
+  opacity: 0.7,
+  visible: false,
+  source: makeSource(FLOOD_CFG.rcp45)
+});
+map.addLayer(floodLayer);
 
-const DATA_BASE = 'https://raw.githubusercontent.com/BaderAnna/WebMap_Practical4_TheThreeHeatwaves/main/data/';
-const GEOJSON_URL = DATA_BASE + 'donkey_bike_stations_WGS84.geojson';
-const AFFECTED_URLS = {
-  rcp45: DATA_BASE + 'RCP45_DonkeyBikes_inside100mBuffer.geojson',
-  rcp85: DATA_BASE + 'RCP85_DonkeyBikes_inside100mBuffer.geojson'
-};
-
-const NAME_KEYS = ['name'];
-const CAP_KEYS  = ['capacity'];
-
-// ---------- Fahrradsymbol (einfaches, selbst gezeichnetes SVG) ----------
-function makeBikeIcon(color) {
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-    '<circle cx="16" cy="16" r="15" fill="' + color + '" stroke="white" stroke-width="2"/>' +
-    '<g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-    '<circle cx="10" cy="21" r="4.2"/><circle cx="22" cy="21" r="4.2"/>' +
-    '<polyline points="10,21 16,21 13,13 20,14 16,21"/>' +
-    '<polyline points="20,14 22,21"/>' +
-    '<polyline points="19,11 20,14"/><polyline points="19,11 22,11"/>' +
-    '<polyline points="11.5,12.5 14.5,12.5"/>' +
-    '</g></svg>';
-  return new ol.style.Style({
-    image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) })
-  });
-}
-const iconStyleNormal   = makeBikeIcon(DONKEY_ORANGE);
-const iconStyleAffected = makeBikeIcon(AFFECTED_RED);
-
-// ---------- Straßen-Risiko-Layer (GeoJSON von GitHub, je ein Layer pro Szenario) ----------
 const ROAD_COLOR = '#6a1b9a';
 const ROAD_URLS = {
   rcp45: DATA_BASE + 'RCP4_5roadsrisk.geojson',
@@ -131,86 +86,114 @@ const roadLayers = {};
     console.error('Could not load ' + ROAD_URLS[scn]);
   });
   roadLayers[scn] = new ol.layer.Vector({ source: src, style: roadStyle, visible: false });
-  map.addLayer(roadLayers[scn]); // vor dem Bike-Layer hinzugefuegt, Stationen liegen oben
+  map.addLayer(roadLayers[scn]);
 });
 
-// ---------- Quellen ----------
-const vectorSource = new ol.source.Vector({
-  url: GEOJSON_URL,
-  format: new ol.format.GeoJSON()
-});
+// =====================================================================
+// 2. Stationen: Donkey bikes und Foeli-Bushaltestellen
+// =====================================================================
+const DONKEY_ORANGE    = '#f7711e';
+const AFFECTED_RED     = '#4b474764';
+const BUS_YELLOW       = '#F5B027';
+const ZOOM_ICON        = 14;   // ab diesem Zoom: Symbole, darunter: Cluster
+const CLUSTER_DISTANCE = 50;   // Pixelabstand zum Zusammenfassen
+const MATCH_TOLERANCE  = 5;    // Toleranz (Kartenmeter) beim Abgleich der Stationen
 
-vectorSource.on('featuresloadend', function (e) {
-  if (e.features.length) console.log('Example station properties:', e.features[0].getProperties());
-  updateLegend();
-});
+// ---------- Symbole (selbst gezeichnete SVGs) ----------
+function bikeIconSvg(color) {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+    '<circle cx="16" cy="16" r="15" fill="' + color + '" stroke="white" stroke-width="2"/>' +
+    '<g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="10" cy="21" r="4.2"/><circle cx="22" cy="21" r="4.2"/>' +
+    '<polyline points="10,21 16,21 13,13 20,14 16,21"/>' +
+    '<polyline points="20,14 22,21"/>' +
+    '<polyline points="19,11 20,14"/><polyline points="19,11 22,11"/>' +
+    '<polyline points="11.5,12.5 14.5,12.5"/>' +
+    '</g></svg>';
+}
 
-const clusterSource = new ol.source.Cluster({
-  distance: CLUSTER_DISTANCE,
-  source: vectorSource
-});
+function busIconSvg(color) {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 64 64">' +
+    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#000000" stroke-width="4"/>' +
+    '<path d="M12 20a5 5 0 0 1 5-5h29a6 6 0 0 1 6 6v23H12z" fill="#000000"/>' +
+    '<rect x="17" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
+    '<rect x="28" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
+    '<rect x="39" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
+    '<rect x="17" y="34" width="30" height="3" fill="' + color + '"/>' +
+    '<circle cx="22" cy="46" r="5" fill="#000000"/>' +
+    '<circle cx="43" cy="46" r="5" fill="#000000"/>' +
+    '</svg>';
+}
 
-// ---------- Betroffene Stationen (Buffer-Dateien) ----------
-const affectedSources = { rcp45: new ol.source.Vector(), rcp85: new ol.source.Vector() };
-const affectedCache   = { rcp45: new WeakMap(),          rcp85: new WeakMap() };
-const geojsonFormat   = new ol.format.GeoJSON();
+function svgIconStyle(svg) {
+  return new ol.style.Style({
+    image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) })
+  });
+}
 
-['rcp45', 'rcp85'].forEach(function (scn) {
-  fetch(AFFECTED_URLS[scn])
-    .then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function (json) {
-      const feats = geojsonFormat.readFeatures(json, {
-        featureProjection: map.getView().getProjection()
-      });
-      affectedSources[scn].addFeatures(feats);
-      affectedCache[scn] = new WeakMap();
-      console.log(SCENARIO_SHORT[scn] + ': ' + feats.length + ' affected features loaded');
-      refreshBikes();
-    })
-    .catch(function (err) {
-      console.error('Could not load ' + AFFECTED_URLS[scn], err);
-    });
-});
+// ---------- Konfiguration pro Modus ----------
+const MODES = {
+  bikes: {
+    label: 'Donkey Republic stations',
+    singular: 'Station',
+    noun: 'stations',
+    color: DONKEY_ORANGE,
+    shape: 'round',
+    clusterText: '#ffffff',
+    stationsUrl: DATA_BASE + 'donkey_bike_stations_WGS84.geojson',
+    affectedUrls: {
+      rcp45: DATA_BASE + 'RCP45_DonkeyBikes_inside100mBuffer.geojson',
+      rcp85: DATA_BASE + 'RCP85_DonkeyBikes_inside100mBuffer.geojson'
+    },
+    nameKeys: ['name'],
+    capKeys: ['capacity'],
+    iconSvg: bikeIconSvg
+  },
+  bus: {
+    label: 'Föli bus stops',
+    singular: 'Bus stop',
+    noun: 'stops',
+    color: BUS_YELLOW,
+    shape: 'square',
+    clusterText: '#000000',   // dunkle Schrift, weiss waere auf Gelb schlecht lesbar
+    stationsUrl: DATA_BASE + 'Turku_Bus_Stops.geojson',
+    affectedUrls: {
+      rcp45: DATA_BASE + encodeURIComponent('RCP45_Fölibus_inside100mBuffer.geojson'),
+      rcp85: DATA_BASE + encodeURIComponent('RCP85_Fölibus_inside100mBuffer.geojson')
+    },
+    nameKeys: ['name', 'Name', 'NAME', 'stop_name', 'nimi', 'Nimi', 'NIMI'],
+    capKeys: [],
+    iconSvg: busIconSvg
+  }
+};
+
+const geojsonFormat = new ol.format.GeoJSON();
+const M = {}; // Laufzeitdaten pro Modus
 
 // Liegt die Station in der Datei der betroffenen Stationen? (mit kleiner Toleranz)
-function isAffectedIn(scn, station) {
-  const cache = affectedCache[scn];
-  if (cache.has(station)) return cache.get(station);
+function isAffectedIn(modeKey, scn, station) {
+  const aff = M[modeKey].affected[scn];
+  if (aff.cache.has(station)) return aff.cache.get(station);
   const c = station.getGeometry().getCoordinates();
-  const near = affectedSources[scn].getFeaturesInExtent(
+  const near = aff.source.getFeaturesInExtent(
     ol.extent.buffer([c[0], c[1], c[0], c[1]], MATCH_TOLERANCE)
   );
   const hit = near.some(function (a) {
     const g = a.getGeometry();
     return g.getType() === 'Point' ? true : g.intersectsCoordinate(c);
   });
-  cache.set(station, hit);
+  aff.cache.set(station, hit);
   return hit;
 }
 
-function affectedStats() {
-  if (currentScenario === 'none') return null;
-  const all = vectorSource.getFeatures();
-  let n = 0;
-  all.forEach(function (f) { if (isAffectedIn(currentScenario, f)) n++; });
-  return { n: n, total: all.length, loaded: affectedSources[currentScenario].getFeatures().length };
-}
-
-// ---------- Styles (gecacht) ----------
-let iconMode = false;
-const styleCache = {};
-
-function clusterStyle(size, state) { // state: 'none' | 'mixed' | 'all'
+function clusterStyle(st, size, state) { // state: 'none' | 'mixed' | 'all'
   const key = size + '|' + state;
-  if (!styleCache[key]) {
-    const radius = Math.min(12 + Math.sqrt(size) * 4, 40); // Groesse nach Anzahl
-    styleCache[key] = new ol.style.Style({
+  if (!st.styleCache[key]) {
+    const radius = Math.min(12 + Math.sqrt(size) * 4, 40);
+    st.styleCache[key] = new ol.style.Style({
       image: new ol.style.Circle({
         radius: radius,
-        fill: new ol.style.Fill({ color: state === 'all' ? AFFECTED_RED : DONKEY_ORANGE }),
+        fill: new ol.style.Fill({ color: state === 'all' ? AFFECTED_RED : st.cfg.color }),
         stroke: new ol.style.Stroke({
           color: state === 'mixed' ? AFFECTED_RED : 'white',
           width: state === 'mixed' ? 4 : 2
@@ -219,33 +202,87 @@ function clusterStyle(size, state) { // state: 'none' | 'mixed' | 'all'
       text: new ol.style.Text({
         text: String(size),
         font: 'bold 14px Arial, sans-serif',
-        fill: new ol.style.Fill({ color: '#ffffff' })
+        fill: new ol.style.Fill({ color: st.cfg.clusterText })
       })
     });
   }
-  return styleCache[key];
+  return st.styleCache[key];
 }
 
-function bikeStyle(feature) {
+let iconMode = false;
+
+function stationStyle(modeKey, feature) {
+  const st = M[modeKey];
   const members = feature.get('features');
   const size = members.length;
   let affected = 0;
   if (currentScenario !== 'none') {
-    members.forEach(function (m) { if (isAffectedIn(currentScenario, m)) affected++; });
+    members.forEach(function (m) { if (isAffectedIn(modeKey, currentScenario, m)) affected++; });
   }
   const state = affected === 0 ? 'none' : (affected === size ? 'all' : 'mixed');
-  if (iconMode && size === 1) return state === 'all' ? iconStyleAffected : iconStyleNormal;
-  return clusterStyle(size, state);
+  if (iconMode && size === 1) return state === 'all' ? st.iconAffected : st.iconNormal;
+  return clusterStyle(st, size, state);
 }
 
-const bikeLayer = new ol.layer.Vector({
-  source: clusterSource,
-  style: bikeStyle
-});
-map.addLayer(bikeLayer);
+function loadAffected(modeKey, scn) {
+  const st  = M[modeKey];
+  const url = st.cfg.affectedUrls[scn];
+  fetch(url)
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (json) {
+      const feats = geojsonFormat.readFeatures(json, {
+        featureProjection: map.getView().getProjection()
+      });
+      st.affected[scn].source.addFeatures(feats);
+      st.affected[scn].cache = new WeakMap();
+      console.log(modeKey + ' ' + SCENARIO_SHORT[scn] + ': ' + feats.length + ' affected features loaded');
+      refreshStations();
+    })
+    .catch(function (err) {
+      console.error('Could not load ' + url, err);
+    });
+}
 
-function refreshBikes() {
-  bikeLayer.changed();
+Object.keys(MODES).forEach(function (modeKey) {
+  const cfg = MODES[modeKey];
+  const st = M[modeKey] = {
+    cfg: cfg,
+    source: new ol.source.Vector({ url: cfg.stationsUrl, format: new ol.format.GeoJSON() }),
+    affected: {
+      rcp45: { source: new ol.source.Vector(), cache: new WeakMap() },
+      rcp85: { source: new ol.source.Vector(), cache: new WeakMap() }
+    },
+    styleCache: {},
+    iconNormal:   svgIconStyle(cfg.iconSvg(cfg.color)),
+    iconAffected: svgIconStyle(cfg.iconSvg(AFFECTED_RED))
+  };
+
+  st.cluster = new ol.source.Cluster({ distance: CLUSTER_DISTANCE, source: st.source });
+  st.layer = new ol.layer.Vector({
+    source: st.cluster,
+    visible: modeKey === currentMode,
+    style: function (f) { return stationStyle(modeKey, f); }
+  });
+  map.addLayer(st.layer);
+
+  st.source.on('featuresloadend', function (e) {
+    if (e.features.length) console.log(modeKey + ' example properties:', e.features[0].getProperties());
+    refreshStations();
+    if (modeKey === currentMode) fillStationList();
+  });
+  st.source.on('featuresloaderror', function () {
+    console.error('Could not load ' + cfg.stationsUrl);
+  });
+
+  loadAffected(modeKey, 'rcp45');
+  loadAffected(modeKey, 'rcp85');
+});
+
+function refreshStations() {
+  Object.keys(M).forEach(function (k) { M[k].layer.changed(); });
   updateLegend();
 }
 
@@ -254,7 +291,9 @@ map.getView().on('change:resolution', function () {
   const nowIcon = map.getView().getZoom() >= ZOOM_ICON;
   if (nowIcon !== iconMode) {
     iconMode = nowIcon;
-    clusterSource.setDistance(iconMode ? 0 : CLUSTER_DISTANCE);
+    Object.keys(M).forEach(function (k) {
+      M[k].cluster.setDistance(iconMode ? 0 : CLUSTER_DISTANCE);
+    });
   }
 });
 
@@ -290,31 +329,37 @@ function pick(props, keys) {
 }
 
 function describe(station) {
+  const cfg = MODES[currentMode];
   const props = station.getProperties();
-  const name = pick(props, NAME_KEYS);
-  const cap  = pick(props, CAP_KEYS);
+  const name = pick(props, cfg.nameKeys);
+  const cap  = pick(props, cfg.capKeys);
   let html;
   if (name === null && cap === null) {
+    // Attributnamen nicht erkannt: alle Attribute anzeigen
     html = Object.keys(props).filter(function (k) { return k !== 'geometry'; })
       .map(function (k) { return esc(k) + ': ' + esc(props[k]); }).join('<br>');
   } else {
-    html = '<b>' + esc(name !== null ? name : '(no name)') + '</b><br>' +
-           'Capacity: ' + (cap !== null ? esc(cap) + ' bikes' : '–');
+    html = '<b>' + esc(name !== null ? name : '(no name)') + '</b>';
+    if (cfg.capKeys.length) {
+      html += '<br>Capacity: ' + (cap !== null ? esc(cap) + ' bikes' : '–');
+    }
   }
   if (currentScenario !== 'none') {
-    html += isAffectedIn(currentScenario, station)
-      ? '<br><span style="color:' + AFFECTED_RED + '"><b>Inside 100 m flood buffer (' +
+    html += isAffectedIn(currentMode, currentScenario, station)
+      ? '<br><span style="color:#4b4747"><b>Inside 100 m flood buffer (' +
         SCENARIO_SHORT[currentScenario] + ')</b></span>'
       : '<br>Outside flood buffer (' + SCENARIO_SHORT[currentScenario] + ')';
   }
   return html;
 }
 
-function onBikeLayer(layer) { return layer === bikeLayer; }
+function onStationLayer(layer) {
+  return Object.keys(M).some(function (k) { return M[k].layer === layer; });
+}
 
 map.on('singleclick', function (evt) {
   const hit = map.forEachFeatureAtPixel(evt.pixel, function (f) { return f; },
-    { layerFilter: onBikeLayer, hitTolerance: 4 });
+    { layerFilter: onStationLayer, hitTolerance: 4 });
 
   if (!hit) { popup.setPosition(undefined); return; }
 
@@ -334,96 +379,49 @@ map.on('singleclick', function (evt) {
 
 map.on('pointermove', function (e) {
   map.getTargetElement().style.cursor =
-    map.hasFeatureAtPixel(e.pixel, { layerFilter: onBikeLayer }) ? 'pointer' : '';
+    map.hasFeatureAtPixel(e.pixel, { layerFilter: onStationLayer }) ? 'pointer' : '';
 });
 
 // =====================================================================
-// 4. Legende und Szenario-Steuerung
+// 4. Legende
 // =====================================================================
 const legendEl = document.getElementById('legend');
 
+function swatch(color, shape, extraClass, borderColor) {
+  return '<span class="dot ' + (shape === 'square' ? 'dot-square ' : '') + (extraClass || '') +
+    '" style="background:' + color + (borderColor ? ';border-color:' + borderColor : '') + '"></span>';
+}
+
 function updateLegend() {
+  const cfg = MODES[currentMode];
   const scn = currentScenario;
-  let html = '<b>Donkey Republic stations</b><br>' +
-    '<span class="dot" style="background:' + DONKEY_ORANGE + '"></span> Station<br>';
+  let html = '<b>' + cfg.label + '</b><br>' +
+    swatch(cfg.color, cfg.shape) + ' ' + cfg.singular + '<br>';
 
   if (scn !== 'none') {
-    html += '<span class="dot" style="background:' + AFFECTED_RED + '"></span> Inside 100 m flood buffer<br>' +
-      '<span class="dot dot-ring" style="background:' + DONKEY_ORANGE + ';border-color:' + AFFECTED_RED +
-      '"></span> Group incl. affected stations<br>';
+    html += swatch(AFFECTED_RED, cfg.shape) + ' Inside 100 m flood buffer<br>' +
+      swatch(cfg.color, 'round', 'dot-ring', AFFECTED_RED) + ' Group incl. affected ' + cfg.noun + '<br>';
 
-    const s = affectedStats();
-    if (s) {
-      if (s.loaded > 0 && s.n === 0 && s.total > 0) {
-        html += '<small>No station matched the buffer file (check data / coordinates)</small><br>';
+    const st = M[currentMode];
+    const all = st.source.getFeatures();
+    if (all.length) {
+      let n = 0;
+      all.forEach(function (f) { if (isAffectedIn(currentMode, scn, f)) n++; });
+      const loaded = st.affected[scn].source.getFeatures().length;
+      if (loaded > 0 && n === 0) {
+        html += '<small>No ' + cfg.singular.toLowerCase() + ' matched the buffer file (check data / coordinates)</small><br>';
       } else {
-        html += '<small>' + s.n + ' of ' + s.total + ' stations affected (' + SCENARIO_SHORT[scn] + ')</small><br>';
+        html += '<small>' + n + ' of ' + all.length + ' ' + cfg.noun + ' affected (' + SCENARIO_SHORT[scn] + ')</small><br>';
       }
     }
 
-    Object.keys(THEMES).forEach(function (key) {
-      if (olLayers[key].getVisible()) {
-        const t = THEMES[key];
-        const cfg = t.legend || t[scn];
-        html += '<br><b>' + t.title + '</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
-                '<img src="' + legendUrl(cfg) + '" alt="Legend"><br>';
-      }
-    });
-
-    if (roadLayers[scn] && roadLayers[scn].getVisible()) {
-      html += '<br><b>Road network risk</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
-        '<span class="line-swatch" style="background:' + ROAD_COLOR + '"></span> Roads at flood risk<br>';
-    }
+    html += '<br><b>Flood depth</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
+            '<img src="' + legendUrl(FLOOD_CFG.legend) + '" alt="Flood depth legend"><br>';
+    html += '<br><b>Road network risk</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
+            '<span class="line-swatch" style="background:' + ROAD_COLOR + '"></span> Roads at flood risk<br>';
   }
   legendEl.innerHTML = html;
 }
-
-function layerChecked(key) {
-  const box = document.querySelector('input[data-layer="' + key + '"]');
-  return currentScenario !== 'none' && !!box && box.checked;
-}
-
-function refreshWmsVisibility() {
-  // WMS-Layer (Flood depth)
-  Object.keys(THEMES).forEach(function (key) {
-    olLayers[key].setVisible(layerChecked(key));
-  });
-  // Straßen: nur der Layer des gewaehlten Szenarios
-  const showRoads = layerChecked('roads');
-  Object.keys(roadLayers).forEach(function (scn) {
-    roadLayers[scn].setVisible(showRoads && scn === currentScenario);
-  });
-}
-
-function setScenario(scn) {
-  currentScenario = scn;
-  if (scn !== 'none') {
-    Object.keys(THEMES).forEach(function (key) {
-      olLayers[key].setSource(makeSource(THEMES[key][scn]));
-    });
-  }
-  document.querySelectorAll('input[data-layer]').forEach(function (el) {
-    el.disabled = (scn === 'none');
-  });
-  refreshWmsVisibility();
-  popup.setPosition(undefined);
-  refreshBikes();
-}
-
-document.querySelectorAll('input[name="rcp"]').forEach(function (el) {
-  el.addEventListener('change', function (e) { setScenario(e.target.value); });
-});
-
-document.querySelectorAll('input[data-layer]').forEach(function (el) {
-  el.addEventListener('change', function () {
-    refreshWmsVisibility();
-    updateLegend();
-  });
-});
-
-// Startzustand aus dem HTML uebernehmen
-const startRadio = document.querySelector('input[name="rcp"]:checked');
-setScenario(startRadio ? startRadio.value : 'none');
 
 // =====================================================================
 // 5. Infokasten (runder "i"-Button)
@@ -441,34 +439,32 @@ document.getElementById('info-close').addEventListener('click', function () { to
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') toggleInfo(false); });
 
 // =====================================================================
-// 6. Stationssuche
+// 6. Stationssuche (sucht im gerade gewaehlten Modus)
 // =====================================================================
 const searchInput = document.getElementById('station-search');
 const searchList  = document.getElementById('station-list');
 const searchMsg   = document.getElementById('search-msg');
 
 function stationName(f) {
-  const n = pick(f.getProperties(), NAME_KEYS);
+  const n = pick(f.getProperties(), MODES[currentMode].nameKeys);
   return n === null ? '' : String(n);
 }
 
-// Vorschlagsliste fuellen, sobald die Stationen geladen sind
 function fillStationList() {
-  const names = vectorSource.getFeatures().map(stationName).filter(Boolean)
+  const names = M[currentMode].source.getFeatures().map(stationName).filter(Boolean)
     .filter(function (n, i, a) { return a.indexOf(n) === i; })
     .sort(function (a, b) { return a.localeCompare(b); });
   searchList.innerHTML = names.map(function (n) {
     return '<option value="' + esc(n) + '"></option>';
   }).join('');
+  searchInput.placeholder = 'Search ' + MODES[currentMode].singular.toLowerCase() + '…';
 }
-vectorSource.on('featuresloadend', fillStationList);
-fillStationList();
 
 // Exakter Treffer zuerst, sonst erster Teiltreffer (Gross-/Kleinschreibung egal)
 function findStation(query) {
   const q = query.trim().toLowerCase();
   if (!q) return null;
-  const all = vectorSource.getFeatures();
+  const all = M[currentMode].source.getFeatures();
   return all.find(function (f) { return stationName(f).toLowerCase() === q; }) ||
          all.find(function (f) { return stationName(f).toLowerCase().indexOf(q) !== -1; }) ||
          null;
@@ -490,7 +486,7 @@ document.getElementById('search-form').addEventListener('submit', function (e) {
   e.preventDefault();
   const station = findStation(searchInput.value);
   if (!station) {
-    searchMsg.textContent = 'No station found';
+    searchMsg.textContent = 'Nothing found';
     return;
   }
   searchMsg.textContent = '';
@@ -498,3 +494,42 @@ document.getElementById('search-form').addEventListener('submit', function (e) {
 });
 
 searchInput.addEventListener('input', function () { searchMsg.textContent = ''; });
+
+// =====================================================================
+// 7. Steuerung: Modus (Bikes / Bus) und Klimaszenario
+// =====================================================================
+function setMode(mode) {
+  currentMode = mode;
+  Object.keys(M).forEach(function (k) { M[k].layer.setVisible(k === mode); });
+  popup.setPosition(undefined);
+  searchInput.value = '';
+  searchMsg.textContent = '';
+  fillStationList();
+  updateLegend();
+}
+
+function setScenario(scn) {
+  currentScenario = scn;
+  const on = scn !== 'none';
+  if (on) floodLayer.setSource(makeSource(FLOOD_CFG[scn]));
+  floodLayer.setVisible(on);
+  Object.keys(roadLayers).forEach(function (k) {
+    roadLayers[k].setVisible(on && k === scn);
+  });
+  popup.setPosition(undefined);
+  refreshStations();
+}
+
+document.querySelectorAll('input[name="mode"]').forEach(function (el) {
+  el.addEventListener('change', function (e) { setMode(e.target.value); });
+});
+
+document.querySelectorAll('input[name="rcp"]').forEach(function (el) {
+  el.addEventListener('change', function (e) { setScenario(e.target.value); });
+});
+
+// Startzustand aus dem HTML uebernehmen
+const startMode = document.querySelector('input[name="mode"]:checked');
+const startRcp  = document.querySelector('input[name="rcp"]:checked');
+setMode(startMode ? startMode.value : 'bikes');
+setScenario(startRcp ? startRcp.value : 'none');
