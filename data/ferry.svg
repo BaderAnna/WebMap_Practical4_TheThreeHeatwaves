@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" fill="#F5B027"
+        stroke="#000000" stroke-width="4"/>
+
+  <!-- Funnel -->
+  <path d="M29 22h6v4h-6z" fill="#000000"/>
+
+  <!-- Single-level cabin -->
+  <path d="M20 26h24v12H20z" fill="#000000"/>
+  <rect x="22" y="28" width="5" height="6" fill="#F5B027"/>
+  <rect x="29" y="28" width="5" height="6" fill="#F5B027"/>
+  <rect x="36" y="28" width="5" height="6" fill="#F5B027"/>
+
+  <!-- Hull -->
+  <path d="M14 38h36l-6 9H20z" fill="#000000"/>
+  <path d="M20 41h25l-2 3H21z" fill="#F5B027"/>
+
+  <!-- Water -->
+  <path d="M16 52c4-3 7 3 11 0s7 3 11 0 7 3 10 0"
+        fill="none" stroke="#000000" stroke-width="2.5"
+        stroke-linecap="round"/>
+</svg>
