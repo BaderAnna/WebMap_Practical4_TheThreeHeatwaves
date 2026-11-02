@@ -15,17 +15,35 @@
     <div id="map-wrapper">
       <div id="map"></div>
       <div id="legend"></div>
+      <form id="search-form" class="search-box" autocomplete="off">
+  <input id="station-search" type="search" list="station-list"
+         placeholder="Search station…" aria-label="Search station by name">
+  <datalist id="station-list"></datalist>
+  <button type="submit">Go</button>
+  <div id="search-msg" class="search-msg"></div>
+</form>
     </div>
-    <div id="controls">
-    <b>Climate scenario</b><br>
-    <label><input type="radio" name="rcp" value="rcp45" checked> RCP 4.5 (moderate)</label><br>
-    <label><input type="radio" name="rcp" value="rcp85"> RCP 8.5 (high)</label>
-    <hr>
-    <b>Layers</b><br>
-    <label><input type="checkbox" data-layer="flood" checked> Flood depth</label><br>
-    <label><input type="checkbox" data-layer="transport"> Public transport</label><br>
-    <label><input type="checkbox" data-layer="roads"> Road network</label>
-    </div>
+<div id="controls">
+  <b>Climate scenario</b><br>
+  <label><input type="radio" name="rcp" value="none" checked> No scenario</label><br>
+  <label><input type="radio" name="rcp" value="rcp45"> RCP 4.5 (moderate)</label><br>
+  <label><input type="radio" name="rcp" value="rcp85"> RCP 8.5 (high)</label>
+  <hr>
+  <b>Climate layers</b><br>
+  <label><input type="checkbox" data-layer="flood" checked> Flood depth</label><br>
+  <label><input type="checkbox" data-layer="roads"> Road network risk</label>
+</div>
+
+<button id="info-btn" class="info-btn" type="button" aria-label="Show information" aria-expanded="false">i</button>
+
+<div id="info-box" class="info-box" hidden>
+  <button id="info-close" class="info-close" type="button" aria-label="Close">&times;</button>
+  <h2>About this map</h2>
+  <p>This map shows how flood scenarios could affect mobility in Turku. Choose a climate scenario
+     (RCP 4.5 = moderate, RCP 8.5 = high emissions) to see flood depth, roads at risk and
+     Donkey Republic stations located within a 100 m flood buffer (shown in grey).</p>
+  <p><b>Data:</b> flood risk maps (Lounaistieto / IKI project), Donkey Republic stations, road risk layers.</p>
+</div>
     <div id="popup" class="popup">
   <a href="#" id="popup-closer" class="popup-closer">&times;</a>
   <div id="popup-content"></div>
