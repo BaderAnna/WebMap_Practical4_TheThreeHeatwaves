@@ -7,8 +7,8 @@ const map = new ol.Map({
   target: 'map',
   layers: [ new ol.layer.Tile({ className: 'bw-basemap', source: new ol.source.OSM() }) ],
   view: new ol.View({
-    center: ol.proj.fromLonLat([22.27, 60.45]), // Turku
-    zoom: 11.5
+    center: ol.proj.fromLonLat([22.27, 60.438]), // Turku
+    zoom: 11.2
   })
 });
 
@@ -116,8 +116,8 @@ const DONKEY_ORANGE    = '#f7711e';
 const AFFECTED_RED     = '#f7711e85';
 const AFFECTED_BUS     = '#F5B02785';
 const BUS_YELLOW       = '#F5B027';
-const ZOOM_ICON        = 14;   // ab diesem Zoom: Symbole, darunter: Cluster
-const CLUSTER_DISTANCE = 50;   // Pixelabstand zum Zusammenfassen
+const ZOOM_ICON        = 16;   // ab diesem Zoom: Symbole, darunter: Cluster
+const CLUSTER_DISTANCE = 80;   // Pixelabstand zum Zusammenfassen
 const MATCH_TOLERANCE  = 5;    // Toleranz (Kartenmeter) beim Abgleich der Stationen
 
 // ---------- Symbole (selbst gezeichnete SVGs) ----------
