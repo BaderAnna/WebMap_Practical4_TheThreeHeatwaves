@@ -56,21 +56,41 @@ const floodLayer = new ol.layer.Tile({
 });
 map.addLayer(floodLayer);
 
-const ROAD_COLOR = '#6a1b9a';
+const ROAD_COLORS = {
+  3: '#8ecae6',
+  4: '#219ebc',
+  5: '#023e8a'
+};
 const ROAD_URLS = {
   rcp45: DATA_BASE + 'RCP4_5roadsrisk.geojson',
   rcp85: DATA_BASE + 'RCP8_5roadsrisk.geojson'
 };
 
-const roadStyle = new ol.style.Style({
-  stroke: new ol.style.Stroke({ color: ROAD_COLOR, width: 3 }),
-  fill:   new ol.style.Fill({ color: 'rgba(106, 27, 154, 0.25)' }),
-  image:  new ol.style.Circle({
+const roadStyles = {};
+Object.keys(ROAD_COLORS).forEach(function (riskClass) {
+  roadStyles[riskClass] = new ol.style.Style({
+    stroke: new ol.style.Stroke({ color: ROAD_COLORS[riskClass], width: 3 }),
+    fill: new ol.style.Fill({ color: ROAD_COLORS[riskClass] + '40' }),
+    image: new ol.style.Circle({
+      radius: 5,
+      fill: new ol.style.Fill({ color: ROAD_COLORS[riskClass] }),
+      stroke: new ol.style.Stroke({ color: 'white', width: 1.5 })
+    })
+  });
+});
+const unclassifiedRoadStyle = new ol.style.Style({
+  stroke: new ol.style.Stroke({ color: '#777777', width: 3 }),
+  fill: new ol.style.Fill({ color: 'rgba(119, 119, 119, 0.25)' }),
+  image: new ol.style.Circle({
     radius: 5,
-    fill: new ol.style.Fill({ color: ROAD_COLOR }),
+    fill: new ol.style.Fill({ color: '#777777' }),
     stroke: new ol.style.Stroke({ color: 'white', width: 1.5 })
   })
 });
+
+function roadStyle(feature) {
+  return roadStyles[String(feature.get('Risk_class'))] || unclassifiedRoadStyle;
+}
 
 const roadLayers = {};
 ['rcp45', 'rcp85'].forEach(function (scn) {
@@ -93,7 +113,8 @@ const roadLayers = {};
 // 2. Stationen: Donkey bikes und Foeli-Bushaltestellen
 // =====================================================================
 const DONKEY_ORANGE    = '#f7711e';
-const AFFECTED_RED     = '#4b474764';
+const AFFECTED_RED     = '#f7711e85';
+const AFFECTED_BUS     = '#F5B02785';
 const BUS_YELLOW       = '#F5B027';
 const ZOOM_ICON        = 14;   // ab diesem Zoom: Symbole, darunter: Cluster
 const CLUSTER_DISTANCE = 50;   // Pixelabstand zum Zusammenfassen
@@ -138,6 +159,7 @@ const MODES = {
     singular: 'Station',
     noun: 'stations',
     color: DONKEY_ORANGE,
+    affectedColor: AFFECTED_RED,
     shape: 'round',
     clusterText: '#ffffff',
     stationsUrl: DATA_BASE + 'donkey_bike_stations_WGS84.geojson',
@@ -154,6 +176,7 @@ const MODES = {
     singular: 'Bus stop',
     noun: 'stops',
     color: BUS_YELLOW,
+    affectedColor: AFFECTED_BUS,
     shape: 'square',
     clusterText: '#000000',   // dunkle Schrift, weiss waere auf Gelb schlecht lesbar
     stationsUrl: DATA_BASE + 'Turku_Bus_Stops.geojson',
@@ -190,12 +213,12 @@ function clusterStyle(st, size, state) { // state: 'none' | 'mixed' | 'all'
   const key = size + '|' + state;
   if (!st.styleCache[key]) {
     const radius = Math.min(12 + Math.sqrt(size) * 4, 40);
-    st.styleCache[key] = new ol.style.Style({
+    const styles = [new ol.style.Style({
       image: new ol.style.Circle({
         radius: radius,
-        fill: new ol.style.Fill({ color: state === 'all' ? AFFECTED_RED : st.cfg.color }),
+        fill: new ol.style.Fill({ color: state === 'all' ? st.cfg.affectedColor : st.cfg.color }),
         stroke: new ol.style.Stroke({
-          color: state === 'mixed' ? AFFECTED_RED : 'white',
+          color: state === 'mixed' ? st.cfg.affectedColor : 'white',
           width: state === 'mixed' ? 4 : 2
         })
       }),
@@ -204,12 +227,33 @@ function clusterStyle(st, size, state) { // state: 'none' | 'mixed' | 'all'
         font: 'bold 14px Arial, sans-serif',
         fill: new ol.style.Fill({ color: st.cfg.clusterText })
       })
-    });
+    })];
+    if (state === 'all') {
+      styles.push(new ol.style.Style({
+        image: new ol.style.RegularShape({
+          points: 4,        // 4 Spitzen -> mit radius2: 0 ergibt das ein "+"
+          radius: radius,   // gleicher Radius wie der Kreis
+          radius2: 0,       // 0 = reine Linien
+          angle: Math.PI / 4, // 45° gedreht -> "×"
+          stroke: new ol.style.Stroke({ color: 'black', width: 3 })
+        })
+      }));
+    }
+    st.styleCache[key] = styles;
   }
   return st.styleCache[key];
 }
 
 let iconMode = false;
+const unavailableIconStyle = new ol.style.Style({
+  image: new ol.style.RegularShape({
+    points: 4,
+    radius: 14,
+    radius2: 0,
+    angle: Math.PI / 4,
+    stroke: new ol.style.Stroke({ color: 'black', width: 2 })
+  })
+});
 
 function stationStyle(modeKey, feature) {
   const st = M[modeKey];
@@ -220,7 +264,9 @@ function stationStyle(modeKey, feature) {
     members.forEach(function (m) { if (isAffectedIn(modeKey, currentScenario, m)) affected++; });
   }
   const state = affected === 0 ? 'none' : (affected === size ? 'all' : 'mixed');
-  if (iconMode && size === 1) return state === 'all' ? st.iconAffected : st.iconNormal;
+  if (iconMode && size === 1) {
+    return state === 'all' ? [st.iconAffected, unavailableIconStyle] : st.iconNormal;
+  }
   return clusterStyle(st, size, state);
 }
 
@@ -257,7 +303,7 @@ Object.keys(MODES).forEach(function (modeKey) {
     },
     styleCache: {},
     iconNormal:   svgIconStyle(cfg.iconSvg(cfg.color)),
-    iconAffected: svgIconStyle(cfg.iconSvg(AFFECTED_RED))
+    iconAffected: svgIconStyle(cfg.iconSvg(cfg.affectedColor))
   };
 
   st.cluster = new ol.source.Cluster({ distance: CLUSTER_DISTANCE, source: st.source });
@@ -399,8 +445,9 @@ function updateLegend() {
     swatch(cfg.color, cfg.shape) + ' ' + cfg.singular + '<br>';
 
   if (scn !== 'none') {
-    html += swatch(AFFECTED_RED, cfg.shape) + ' Inside 100 m flood buffer<br>' +
-      swatch(cfg.color, 'round', 'dot-ring', AFFECTED_RED) + ' Group incl. affected ' + cfg.noun + '<br>';
+    html += swatch(cfg.affectedColor, cfg.shape) + ' Inside 100 m flood buffer<br>' +
+      '<span class="unavailable-mark" aria-hidden="true">×</span> Station not accessible<br>' +
+      swatch(cfg.color, 'round', 'dot-ring', cfg.affectedColor) + ' Group incl. affected ' + cfg.noun + '<br>';
 
     const st = M[currentMode];
     const all = st.source.getFeatures();
@@ -418,7 +465,10 @@ function updateLegend() {
     html += '<br><b>Flood depth</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
             '<img src="' + legendUrl(FLOOD_CFG.legend) + '" alt="Flood depth legend"><br>';
     html += '<br><b>Road network risk</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
-            '<span class="line-swatch" style="background:' + ROAD_COLOR + '"></span> Roads at flood risk<br>';
+      Object.keys(ROAD_COLORS).reverse().map(function (riskClass) {
+        return '<span class="line-swatch" style="background:' + ROAD_COLORS[riskClass] +
+          '"></span> Risk class ' + riskClass + '<br>';
+      }).join('');
   }
   legendEl.innerHTML = html;
 }

@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flood Impacts on mobility and access to services</title>
+    <title>Flood Impacts on Föli Mobility</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <header>
-      <h1>Flood Impacts on mobility and access to services</h1>
+      <h1>Flood Impacts on Föli Mobility</h1>
+      <h5>Explore how future flood scenarios can disrupt Turku’s public transport network</h5> 
     </header>
 
     <div id="map-wrapper">
@@ -24,18 +25,29 @@
 </form>
     </div>
 <div id="controls">
+  <fieldset class="scenario-group">
+    <legend>Choose a climate scenario</legend>
+    <div class="scenario-options">
+      <label class="scenario-option">
+        <input type="radio" name="rcp" value="none" checked>
+        <span>No scenario</span>
+      </label>
+      <label class="scenario-option">
+        <input type="radio" name="rcp" value="rcp45">
+        <span>RCP 4.5</span>
+      </label>
+      <label class="scenario-option">
+        <input type="radio" name="rcp" value="rcp85">
+        <span>RCP 8.5</span>
+      </label>
+    </div>
+  </fieldset>
+  <hr>
   <b>Station type</b><br>
 <label><input type="radio" name="mode" value="bikes" checked> Donkey bikes</label><br>
-<label><input type="radio" name="mode" value="bus"> Föli bus stops</label>
+<label><input type="radio" name="mode" value="bus"> Föli bus stops</label><br>
+<label><input type="radio" name="mode" value="bus"> Föli water bus stops</label>
 <hr>
-  <b>Climate scenario</b><br>
-  <label><input type="radio" name="rcp" value="none" checked> No scenario</label><br>
-  <label><input type="radio" name="rcp" value="rcp45"> RCP 4.5 (moderate)</label><br>
-  <label><input type="radio" name="rcp" value="rcp85"> RCP 8.5 (high)</label>
-  <hr>
-  <b>Climate layers</b><br>
-  <label><input type="checkbox" data-layer="flood" checked> Flood depth</label><br>
-  <label><input type="checkbox" data-layer="roads"> Road network risk</label>
 </div>
 
 <button id="info-btn" class="info-btn" type="button" aria-label="Show information" aria-expanded="false">i</button>
@@ -45,7 +57,7 @@
   <h2>About this map</h2>
   <p>This map shows how flood scenarios could affect mobility in Turku. Choose a climate scenario
      (RCP 4.5 = moderate, RCP 8.5 = high emissions) to see flood depth, roads at risk and
-     Donkey Republic stations located within a 100 m flood buffer (shown in grey).</p>
+     stations within a 100 m flood buffer, marked with an X as not accessible.</p>
   <p><b>Data:</b> flood risk maps (Lounaistieto / IKI project), Donkey Republic stations, road risk layers.</p>
 </div>
     <div id="popup" class="popup">

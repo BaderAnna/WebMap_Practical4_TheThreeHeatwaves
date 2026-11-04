@@ -16,8 +16,13 @@ header {
 }
 
 h1 {
-  margin: 0;
-  font-size: 1.2rem;
+  margin: 10px;
+  font-size: 1.5rem;
+}
+
+h5 {
+  margin: 10px;
+  font-size: 1.0rem;
 }
 
 #map-wrapper {
@@ -47,8 +52,10 @@ h1 {
 
 #controls {
   position: absolute;
-  top: 10px;
+  top: 100px;
   right: 10px;
+  width: 360px;
+  box-sizing: border-box;
   background: white;
   padding: 10px;
   border-radius: 4px;
@@ -56,7 +63,73 @@ h1 {
   font-size: 0.9rem;
 }
 
+#controls .scenario-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#controls .scenario-group legend {
+  padding: 0;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.scenario-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.scenario-option {
+  position: relative;
+  cursor: pointer;
+  text-align: center;
+}
+
+.scenario-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.scenario-option span {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid #9aa8b8;
+  border-radius: 4px;
+  background: #f7f9fc;
+  color: #1f3a5f;
+  line-height: 1.2;
+}
+
+.scenario-option input:checked + span {
+  border-color: #1f3a5f;
+  background: #1f3a5f;
+  color: white;
+  box-shadow: inset 0 0 0 1px white;
+}
+
+.scenario-option input:focus-visible + span {
+  outline: 2px solid #4a74a8;
+  outline-offset: 2px;
+}
+
+.scenario-option small {
+  font-size: 0.75rem;
+}
+
 #controls hr { margin: 8px 0; }
+
+@media (max-width: 480px) {
+  #controls {
+    width: min(360px, calc(100vw - 20px));
+  }
+}
 
 #legend {
   max-height: 60%;
@@ -108,12 +181,24 @@ h1 {
   border-width: 3px;
 }
 
+.unavailable-mark {
+  display: inline-block;
+  width: 16px;
+  color: #000000;
+  font-size: 1.35rem;
+  font-weight: bold;
+  line-height: 12px;
+  text-align: center;
+  text-shadow: -1px -1px white, 1px -1px white, -1px 1px white, 1px 1px white;
+  vertical-align: middle;
+}
+
 #legend img { max-width: 220px; }
 
 .info-btn {
   position: absolute;
-  top: 100px;
-  left: 8px;
+  top: 810px;
+  left: 1880px;
   z-index: 10;
   width: 28px;
   height: 28px;
