@@ -116,8 +116,8 @@ const DONKEY_ORANGE    = '#f7711e';
 const AFFECTED_RED     = '#f7711e85';
 const AFFECTED_BUS     = '#F5B02785';
 const BUS_YELLOW       = '#F5B027';
-const ZOOM_ICON        = 16;   // ab diesem Zoom: Symbole, darunter: Cluster
-const CLUSTER_DISTANCE = 80;   // Pixelabstand zum Zusammenfassen
+const AFFECTED_FERRY   = '#F5B02785';
+const FERRY_BLUE     = '#F5B027';
 const MATCH_TOLERANCE  = 5;    // Toleranz (Kartenmeter) beim Abgleich der Stationen
 
 // ---------- Symbole (selbst gezeichnete SVGs) ----------
@@ -152,6 +152,21 @@ function svgIconStyle(svg) {
   });
 }
 
+function ferryIconSvg(color) {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 64 64">' +
+    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#000000" stroke-width="4"/>' +
+    '<path d="M30 17h4v5h-4zM29 16h6v2h-6z" fill="#000000"/>' +
+    '<path d="M18 25h28v14H18z" fill="#000000"/>' +
+    '<path d="M16 22h32v4H16z" fill="#000000"/>' +
+    '<rect x="21" y="29" width="6" height="6" fill="' + color + '"/>' +
+    '<rect x="29" y="29" width="6" height="6" fill="' + color + '"/>' +
+    '<rect x="37" y="29" width="6" height="6" fill="' + color + '"/>' +
+    '<path d="M12 39h40l-6 10-6 3H24l-6-3z" fill="#000000"/>' +
+    '<path d="M18 42h28l-2 3H20z" fill="' + color + '"/>' +
+    '<path d="M14 56c3-2 6 2 9 0s6-2 9 0 6 2 9 0 6-2 9 0" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
 // ---------- Konfiguration pro Modus ----------
 const MODES = {
   bikes: {
@@ -160,6 +175,8 @@ const MODES = {
     noun: 'stations',
     color: DONKEY_ORANGE,
     affectedColor: AFFECTED_RED,
+    zoomIcon: 14,
+    clusterDistance: 50,
     shape: 'round',
     clusterText: '#ffffff',
     stationsUrl: DATA_BASE + 'donkey_bike_stations_WGS84.geojson',
@@ -177,6 +194,8 @@ const MODES = {
     noun: 'stops',
     color: BUS_YELLOW,
     affectedColor: AFFECTED_BUS,
+    zoomIcon: 15,
+    clusterDistance: 80,
     shape: 'square',
     clusterText: '#000000',   // dunkle Schrift, weiss waere auf Gelb schlecht lesbar
     stationsUrl: DATA_BASE + 'Turku_Bus_Stops.geojson',
@@ -187,7 +206,26 @@ const MODES = {
     nameKeys: ['name', 'Name', 'NAME', 'stop_name', 'nimi', 'Nimi', 'NIMI'],
     capKeys: [],
     iconSvg: busIconSvg
-  }
+  },
+  ferry: {
+    label: 'Föli ferry terminals',
+    singular: 'Ferry terminal',
+    noun: 'terminals',
+    color: FERRY_BLUE,
+    affectedColor: AFFECTED_FERRY,
+    zoomIcon: 14,
+    clusterDistance: 50,
+    shape: 'diamond',
+    clusterText: '#000000',
+    stationsUrl: DATA_BASE + 'Ferry_stations_all_wgs84.geojson',
+    affectedUrls: {
+      rcp45: DATA_BASE + encodeURIComponent('RCP45_Ferry_inside100mBuffer_wgs84.geojson'),
+      rcp85: DATA_BASE + encodeURIComponent('RCP85_Ferry_inside100mBuffer_wgs84.geojson')
+    },
+    nameKeys: ['name', 'Name', 'NAME', 'terminal_name', 'nimi', 'Nimi', 'NIMI'],
+    capKeys: [],
+    iconSvg: ferryIconSvg
+  },
 };
 
 const geojsonFormat = new ol.format.GeoJSON();
@@ -203,7 +241,11 @@ function isAffectedIn(modeKey, scn, station) {
   );
   const hit = near.some(function (a) {
     const g = a.getGeometry();
-    return g.getType() === 'Point' ? true : g.intersectsCoordinate(c);
+    if (g.getType() === 'Point' || g.intersectsCoordinate(c)) return true;
+    const closest = g.getClosestPoint(c);
+    const dx = closest[0] - c[0];
+    const dy = closest[1] - c[1];
+    return dx * dx + dy * dy <= MATCH_TOLERANCE * MATCH_TOLERANCE;
   });
   aff.cache.set(station, hit);
   return hit;
@@ -244,7 +286,6 @@ function clusterStyle(st, size, state) { // state: 'none' | 'mixed' | 'all'
   return st.styleCache[key];
 }
 
-let iconMode = false;
 const unavailableIconStyle = new ol.style.Style({
   image: new ol.style.RegularShape({
     points: 4,
@@ -264,7 +305,7 @@ function stationStyle(modeKey, feature) {
     members.forEach(function (m) { if (isAffectedIn(modeKey, currentScenario, m)) affected++; });
   }
   const state = affected === 0 ? 'none' : (affected === size ? 'all' : 'mixed');
-  if (iconMode && size === 1) {
+  if (map.getView().getZoom() >= st.cfg.zoomIcon && size === 1) {
     return state === 'all' ? [st.iconAffected, unavailableIconStyle] : st.iconNormal;
   }
   return clusterStyle(st, size, state);
@@ -306,7 +347,11 @@ Object.keys(MODES).forEach(function (modeKey) {
     iconAffected: svgIconStyle(cfg.iconSvg(cfg.affectedColor))
   };
 
-  st.cluster = new ol.source.Cluster({ distance: CLUSTER_DISTANCE, source: st.source });
+  st.iconMode = map.getView().getZoom() >= cfg.zoomIcon;
+  st.cluster = new ol.source.Cluster({
+    distance: st.iconMode ? 0 : cfg.clusterDistance,
+    source: st.source
+  });
   st.layer = new ol.layer.Vector({
     source: st.cluster,
     visible: modeKey === currentMode,
@@ -332,15 +377,17 @@ function refreshStations() {
   updateLegend();
 }
 
-// Zwischen Cluster- und Symbolmodus wechseln
+// Zwischen Cluster- und Symbolmodus pro Verkehrsmittel wechseln
 map.getView().on('change:resolution', function () {
-  const nowIcon = map.getView().getZoom() >= ZOOM_ICON;
-  if (nowIcon !== iconMode) {
-    iconMode = nowIcon;
-    Object.keys(M).forEach(function (k) {
-      M[k].cluster.setDistance(iconMode ? 0 : CLUSTER_DISTANCE);
-    });
-  }
+  const zoom = map.getView().getZoom();
+  Object.keys(M).forEach(function (k) {
+    const st = M[k];
+    const nowIcon = zoom >= st.cfg.zoomIcon;
+    if (nowIcon !== st.iconMode) {
+      st.iconMode = nowIcon;
+      st.cluster.setDistance(nowIcon ? 0 : st.cfg.clusterDistance);
+    }
+  });
 });
 
 // =====================================================================
@@ -412,10 +459,14 @@ map.on('singleclick', function (evt) {
   const members = hit.get('features');
 
   // Cluster in der Uebersicht: hineinzoomen statt Popup
-  if (members.length > 1 && !iconMode) {
+  if (members.length > 1 && map.getView().getZoom() < M[currentMode].cfg.zoomIcon) {
     const extent = ol.extent.createEmpty();
     members.forEach(function (m) { ol.extent.extend(extent, m.getGeometry().getExtent()); });
-    map.getView().fit(extent, { duration: 300, padding: [80, 80, 80, 80], maxZoom: ZOOM_ICON + 1 });
+    map.getView().fit(extent, {
+      duration: 300,
+      padding: [80, 80, 80, 80],
+      maxZoom: M[currentMode].cfg.zoomIcon + 1
+    });
     return;
   }
 
@@ -524,7 +575,7 @@ function showStation(station) {
   const coord = station.getGeometry().getCoordinates();
   const view = map.getView();
   view.animate(
-    { center: coord, zoom: Math.max(view.getZoom(), ZOOM_ICON + 1), duration: 600 },
+    { center: coord, zoom: Math.max(view.getZoom(), M[currentMode].cfg.zoomIcon + 1), duration: 600 },
     function () {
       popupContent.innerHTML = describe(station);
       popup.setPosition(coord);
