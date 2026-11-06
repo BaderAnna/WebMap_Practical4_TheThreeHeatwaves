@@ -146,24 +146,27 @@ function busIconSvg(color) {
     '</svg>';
 }
 
-function svgIconStyle(svg) {
+function svgIconStyle(svg, scale) {
   return new ol.style.Style({
-    image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) })
+    image: new ol.style.Icon({
+      src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
+      scale: scale || 1
+    })
   });
 }
 
 function ferryIconSvg(color) {
   return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 64 64">' +
-    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#000000" stroke-width="4"/>' +
-    '<path d="M30 17h4v5h-4zM29 16h6v2h-6z" fill="#000000"/>' +
-    '<path d="M18 25h28v14H18z" fill="#000000"/>' +
-    '<path d="M16 22h32v4H16z" fill="#000000"/>' +
+    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#ffffff" stroke-width="4"/>' +
+    '<path d="M30 17h4v5h-4zM29 16h6v2h-6z" fill="#ffffff"/>' +
+    '<path d="M18 25h28v14H18z" fill="#ffffff"/>' +
+    '<path d="M16 22h32v4H16z" fill="#ffffff"/>' +
     '<rect x="21" y="29" width="6" height="6" fill="' + color + '"/>' +
     '<rect x="29" y="29" width="6" height="6" fill="' + color + '"/>' +
     '<rect x="37" y="29" width="6" height="6" fill="' + color + '"/>' +
-    '<path d="M12 39h40l-6 10-6 3H24l-6-3z" fill="#000000"/>' +
+    '<path d="M12 39h40l-6 10-6 3H24l-6-3z" fill="#ffffff"/>' +
     '<path d="M18 42h28l-2 3H20z" fill="' + color + '"/>' +
-    '<path d="M14 56c3-2 6 2 9 0s6-2 9 0 6 2 9 0 6-2 9 0" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M14 56c3-2 6 2 9 0s6-2 9 0 6 2 9 0 6-2 9 0" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>' +
     '</svg>';
 }
 
@@ -205,6 +208,10 @@ const MODES = {
     },
     nameKeys: ['name', 'Name', 'NAME', 'stop_name', 'nimi', 'Nimi', 'NIMI'],
     capKeys: [],
+    majorStopPattern: /linja-autoasema|turun satama|kauppatori|puutori|rautatientori|turun rautatieasema/i,
+    majorStopScale: 1.4,
+    majorStopColor: '#D99500',
+    majorStopAffectedColor: '#D9950085',
     iconSvg: busIconSvg
   },
   ferry: {
@@ -216,7 +223,7 @@ const MODES = {
     zoomIcon: 14,
     clusterDistance: 50,
     shape: 'diamond',
-    clusterText: '#000000',
+    clusterText: '#ffffff',
     stationsUrl: DATA_BASE + 'Ferry_stations_all_wgs84.geojson',
     affectedUrls: {
       rcp45: DATA_BASE + encodeURIComponent('RCP45_Ferry_inside100mBuffer_wgs84.geojson'),
@@ -230,6 +237,13 @@ const MODES = {
 
 const geojsonFormat = new ol.format.GeoJSON();
 const M = {}; // Laufzeitdaten pro Modus
+
+document.querySelectorAll('.mode-option').forEach(function (option) {
+  const mode = option.querySelector('input[name="mode"]').value;
+  const cfg = MODES[mode];
+  option.querySelector('.mode-icon').src =
+    'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cfg.iconSvg(cfg.color));
+});
 
 // Liegt die Station in der Datei der betroffenen Stationen? (mit kleiner Toleranz)
 function isAffectedIn(modeKey, scn, station) {
@@ -296,17 +310,35 @@ const unavailableIconStyle = new ol.style.Style({
   })
 });
 
+const unavailableMajorIconStyle = new ol.style.Style({
+  image: new ol.style.RegularShape({
+    points: 4,
+    radius: 20,
+    radius2: 0,
+    angle: Math.PI / 4,
+    stroke: new ol.style.Stroke({ color: 'black', width: 3 })
+  })
+});
+
 function stationStyle(modeKey, feature) {
   const st = M[modeKey];
   const members = feature.get('features');
   const size = members.length;
+  const isMajorStop = size === 1 && st.cfg.majorStopPattern &&
+    st.cfg.majorStopPattern.test(String(pick(members[0].getProperties(), st.cfg.nameKeys) || ''));
   let affected = 0;
   if (currentScenario !== 'none') {
     members.forEach(function (m) { if (isAffectedIn(modeKey, currentScenario, m)) affected++; });
   }
   const state = affected === 0 ? 'none' : (affected === size ? 'all' : 'mixed');
   if (map.getView().getZoom() >= st.cfg.zoomIcon && size === 1) {
-    return state === 'all' ? [st.iconAffected, unavailableIconStyle] : st.iconNormal;
+    if (state === 'all') {
+      return [
+        isMajorStop ? st.iconMajorAffected : st.iconAffected,
+        isMajorStop ? unavailableMajorIconStyle : unavailableIconStyle
+      ];
+    }
+    return isMajorStop ? st.iconMajorNormal : st.iconNormal;
   }
   return clusterStyle(st, size, state);
 }
@@ -344,7 +376,12 @@ Object.keys(MODES).forEach(function (modeKey) {
     },
     styleCache: {},
     iconNormal:   svgIconStyle(cfg.iconSvg(cfg.color)),
-    iconAffected: svgIconStyle(cfg.iconSvg(cfg.affectedColor))
+    iconAffected: svgIconStyle(cfg.iconSvg(cfg.affectedColor)),
+    iconMajorNormal: svgIconStyle(cfg.iconSvg(cfg.majorStopColor || cfg.color), cfg.majorStopScale),
+    iconMajorAffected: svgIconStyle(
+      cfg.iconSvg(cfg.majorStopAffectedColor || cfg.affectedColor),
+      cfg.majorStopScale
+    )
   };
 
   st.iconMode = map.getView().getZoom() >= cfg.zoomIcon;
@@ -494,6 +531,11 @@ function updateLegend() {
   const scn = currentScenario;
   let html = '<b>' + cfg.label + '</b><br>' +
     swatch(cfg.color, cfg.shape) + ' ' + cfg.singular + '<br>';
+
+  if (cfg.majorStopPattern) {
+    html += swatch(cfg.majorStopColor || cfg.color, cfg.shape, 'dot-major') +
+      ' Main bus hubs<br>';
+  }
 
   if (scn !== 'none') {
     html += swatch(cfg.affectedColor, cfg.shape) + ' Inside 100 m flood buffer<br>' +

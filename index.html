@@ -43,10 +43,32 @@
     </div>
   </fieldset>
   <hr>
-  <b>Station type</b><br>
-<label><input type="radio" name="mode" value="bikes" checked> Donkey bikes</label><br>
-<label><input type="radio" name="mode" value="bus"> Föli bus stops</label><br>
-<label><input type="radio" name="mode" value="ferry"> Föli water bus stops</label>
+  <fieldset class="mode-group">
+    <legend>Station type</legend>
+    <div class="mode-options">
+      <label class="mode-option">
+        <input type="radio" name="mode" value="bikes" checked>
+        <span class="mode-option-card">
+          <img class="mode-icon" alt="" aria-hidden="true">
+          <span>Donkey bikes</span>
+        </span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="mode" value="bus">
+        <span class="mode-option-card">
+          <img class="mode-icon" alt="" aria-hidden="true">
+          <span>Föli bus stops</span>
+        </span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="mode" value="ferry">
+        <span class="mode-option-card">
+          <img class="mode-icon" alt="" aria-hidden="true">
+          <span>Föli water bus</span>
+        </span>
+      </label>
+    </div>
+  </fieldset>
 <hr>
 </div>
 
