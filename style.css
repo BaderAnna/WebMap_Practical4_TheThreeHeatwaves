@@ -506,7 +506,7 @@ h5 {
   left: 8px;
   z-index: 10;
   box-sizing: border-box;
-  width: min(360px, calc(100vw - 32px));
+  width: min(305px, calc(100vw - 32px));
   display: flex;
   align-items: flex-start;
   gap: 8px;
