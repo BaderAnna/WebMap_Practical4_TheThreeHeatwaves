@@ -16,6 +16,7 @@
     <div id="map-wrapper">
       <div id="map"></div>
       <div id="legend"></div>
+      <div class="map-tools">
       <form id="search-form" class="search-box" autocomplete="off">
   <input id="station-search" type="search" list="station-list"
          placeholder="Search station…" aria-label="Search station by name">
@@ -23,6 +24,15 @@
   <button type="submit">Go</button>
   <div id="search-msg" class="search-msg"></div>
 </form>
+      </div>
+      <div id="ruissalo-warning" class="map-warning" role="note" hidden>
+        <svg class="map-warning-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.5 1.7 21h20.6L12 2.5Z" fill="#d7191c"/>
+          <path d="M12 8v6" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="17.5" r="1.2" fill="#fff"/>
+        </svg>
+        <span>Ruissalo Island is not included in the flood data, <br>so flood risk could not be calculated there.</span>
+      </div>
     </div>
 <div id="controls">
   <fieldset class="scenario-group">
@@ -76,11 +86,75 @@
 
 <div id="info-box" class="info-box" hidden>
   <button id="info-close" class="info-close" type="button" aria-label="Close">&times;</button>
-  <h2>About this map</h2>
-  <p>This map shows how flood scenarios could affect mobility in Turku. Choose a climate scenario
-     (RCP 4.5 = moderate, RCP 8.5 = high emissions) to see flood depth, roads at risk and
-     stations within a 100 m flood buffer, marked with an X as not accessible.</p>
-  <p><b>Data:</b> flood risk maps (Lounaistieto / IKI project), Donkey Republic stations, road risk layers.</p>
+
+  <!-- Bereich 1: Infotext -->
+  <div id="info-main">
+    <h2>Background information about this map</h2>
+    <p>The map visualises two different future flood scenarios by the year 2100 and how those are impacting Föli mobility, more explicitly bike, bus and ferry stations. Two different RCP (Representative Concentration Pathway) scenarios are applied. <b>RCP4.5 is a moderate scenario</b> where emissions rise until mid-century and decline afterwards, resulting in moderate sea-level rise and precipitation increases. <b>RCP8.5 is a high-emissions</b>, worst-case scenario with steadily rising emissions, resulting in extreme sea-level rise and severe flooding events.
+      <br><br>These RCP scenarios are visible in the map through classifications of flood water depth and road vulnerability risk due to flooding. The flood depth layer shows different flood depth classes:
+    </p>
+    <ul>
+      <li><b>Class 1:</b> 10.1 - 20 cm (low risk)</li>
+      <li><b>Class 2:</b> 20.1 - 30 cm (low risk)</li>
+      <li><b>Class 3:</b> 30.1 - 40 cm (moderate risk)</li>
+      <li><b>Class 4:</b> 40.1 - 50 cm (high risk)</li>
+      <li><b>Class 5:</b> &gt; 50.1 cm (high risk)</li>
+    </ul>
+    <p>The connected road risk vulnerability layer includes only classes 3-5, the higher risk classes. Those classes, in combination with a 100m buffer zone, are applied to the different station layers to visualise stations that are unavailable due to flooding in the respective scenario.</p>
+    <ul>
+      <li><b>Föli Bike Stations:</b> Shows Donkey Republic city bike stations. The buffer zone of 100m protects bike users from being endangered by broader flood zones.</li>
+      <li><b>Föli Bus Stations:</b> Shows available bus stops and a 100m buffer zone interlinked with the possible flood scenarios causing accessibility issues for buses or passengers.</li>
+      <li><b>Föli Water Bus Stations:</b> Shows Föli ferry stations and includes a 100m flood buffer zone for potential users.</li>
+    </ul>
+    <p><b>Data:</b> <a href="#" id="info-data-link" class="info-link">Data sources</a></p>
+  </div>
+
+  <!-- Bereich 2: verwendete Daten -->
+<div id="info-data" hidden>
+  <h2>Data sources</h2>
+
+  <p class="src">
+    <b>Flood depth</b> (RCP4.5 and RCP8.5)<br>
+    <u>Source:</u> Turku University of Applied Sciences, Water and Environmental Protection Research Group (2026). Climate-Resilient Investment Projects (IKI) – Map materials of the project Preparing for Regional Climate Risks in City Planning and Planning.<br>
+    <u>License:</u> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International (CC BY 4.0)</a><br>
+    <u>Technical info:</u> ETRS89-FIN (EPSG:3067)
+  </p>
+
+  <p class="src">
+    <b>Road risk layer</b> (RCP4.5 and RCP8.5)<br>
+    <u>Source:</u> Turku University of Applied Sciences, Water and Environmental Protection Research Group (2026). Climate-Resilient Investment Projects (IKI) – Map materials of the project Preparing for Regional Climate Risks in City Planning and Planning.<br>
+    <u>License:</u> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International (CC BY 4.0)</a><br>
+    <u>Technical info:</u> ETRS89-FIN (EPSG:3067)
+  </p>
+
+  <p class="src">
+    <b>Bus stations</b><br>
+    <u>Source:</u> OpenStreetMap (OSM) and Service Information Repository (PTV)<br>
+    <u>License:</u> OSM<br>
+    <u>Technical info:</u> ETRS-TM35FIN (EPSG:3067) for main bus stations; EPSG:4326 (WGS 84) for regular bus stations
+  </p>
+
+  <p class="src">
+    <b>Ferry stations</b><br>
+    <u>Source:</u> OpenStreetMap (OSM) and Service Information Repository (PTV)<br>
+    <u>License:</u> OSM<br>
+    <u>Technical info:</u> ETRS-TM35FIN (EPSG:3067)
+  </p>
+
+  <p class="src">
+    <b>Bike stations</b><br>
+    <u>Source:</u> Public Transport Services of the region of Turku (2026)<br>
+    <u>License:</u> Public Transport Services of the region of Turku (2026)<br>
+    <u>Technical info:</u> EPSG:4326 (WGS 84)
+  </p>
+
+  <p class="src">
+    <b>Basemap</b><br>
+    © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+  </p>
+
+  <p><a href="#" id="info-back-link" class="info-link">&larr; Back to map information</a></p>
+</div>
 </div>
     <div id="popup" class="popup">
   <a href="#" id="popup-closer" class="popup-closer">&times;</a>

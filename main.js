@@ -57,10 +57,11 @@ const floodLayer = new ol.layer.Tile({
 map.addLayer(floodLayer);
 
 const ROAD_COLORS = {
-  3: '#8ecae6',
-  4: '#219ebc',
-  5: '#023e8a'
+  3: '#6baed6',
+  4: '#3182bd',
+  5: '#08519c'
 };
+
 const ROAD_URLS = {
   rcp45: DATA_BASE + 'RCP4_5roadsrisk.geojson',
   rcp85: DATA_BASE + 'RCP8_5roadsrisk.geojson'
@@ -135,14 +136,14 @@ function bikeIconSvg(color) {
 
 function busIconSvg(color) {
   return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 64 64">' +
-    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#000000" stroke-width="4"/>' +
-    '<path d="M12 20a5 5 0 0 1 5-5h29a6 6 0 0 1 6 6v23H12z" fill="#000000"/>' +
+    '<rect x="2" y="2" width="60" height="60" fill="' + color + '" stroke="#ffffff" stroke-width="4"/>' +
+    '<path d="M12 20a5 5 0 0 1 5-5h29a6 6 0 0 1 6 6v23H12z" fill="#ffffff"/>' +
     '<rect x="17" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
     '<rect x="28" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
     '<rect x="39" y="20" width="8" height="10" rx="1" fill="' + color + '"/>' +
     '<rect x="17" y="34" width="30" height="3" fill="' + color + '"/>' +
-    '<circle cx="22" cy="46" r="5" fill="#000000"/>' +
-    '<circle cx="43" cy="46" r="5" fill="#000000"/>' +
+    '<circle cx="22" cy="46" r="5" fill="#ffffff"/>' +
+    '<circle cx="43" cy="46" r="5" fill="#ffffff"/>' +
     '</svg>';
 }
 
@@ -200,7 +201,7 @@ const MODES = {
     zoomIcon: 15,
     clusterDistance: 80,
     shape: 'square',
-    clusterText: '#000000',   // dunkle Schrift, weiss waere auf Gelb schlecht lesbar
+    clusterText: '#ffffff',   // dunkle Schrift, weiss waere auf Gelb schlecht lesbar
     stationsUrl: DATA_BASE + 'Turku_Bus_Stops.geojson',
     affectedUrls: {
       rcp45: DATA_BASE + encodeURIComponent('RCP45_Fölibus_inside100mBuffer.geojson'),
@@ -209,9 +210,9 @@ const MODES = {
     nameKeys: ['name', 'Name', 'NAME', 'stop_name', 'nimi', 'Nimi', 'NIMI'],
     capKeys: [],
     majorStopPattern: /linja-autoasema|turun satama|kauppatori|puutori|rautatientori|turun rautatieasema/i,
-    majorStopScale: 1.4,
-    majorStopColor: '#D99500',
-    majorStopAffectedColor: '#D9950085',
+    majorStopScale: 1.0,
+    majorStopColor: '#fae104',
+    majorStopAffectedColor: '#fae10485',
     iconSvg: busIconSvg
   },
   ferry: {
@@ -521,26 +522,42 @@ map.on('pointermove', function (e) {
 // =====================================================================
 const legendEl = document.getElementById('legend');
 
+// Klassen des Flood-Layers: PLATZHALTER-FARBEN, bitte durch die Farben der Karte ersetzen
+const FLOOD_CLASSES = [
+  { color: '#08519c', label: 'Class 5: &gt; 50.1 cm' },
+  { color: '#3182bd', label: 'Class 4: 40.1 - 50 cm' },
+  { color: '#6baed6', label: 'Class 3: 30.1 - 40 cm' },
+  { color: '#9ecae1', label: 'Class 2: 20.1 - 30 cm' },
+  { color: '#c6dbef', label: 'Class 1: 10.1 - 20 cm' }
+];
+
 function swatch(color, shape, extraClass, borderColor) {
   return '<span class="dot ' + (shape === 'square' ? 'dot-square ' : '') + (extraClass || '') +
     '" style="background:' + color + (borderColor ? ';border-color:' + borderColor : '') + '"></span>';
 }
 
+function legendIcon(cfg, color) {
+  const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cfg.iconSvg(color || cfg.color));
+  return '<img class="legend-icon" src="' + src + '" alt="">';
+}
+
 function updateLegend() {
   const cfg = MODES[currentMode];
   const scn = currentScenario;
-  let html = '<b>' + cfg.label + '</b><br>' +
-    swatch(cfg.color, cfg.shape) + ' ' + cfg.singular + '<br>';
+
+  // --- Abschnitt 1: Stationen ---
+  let html = '<div class="legend-stations"><b>' + cfg.label + '</b><br>' +
+    legendIcon(cfg) + ' ' + cfg.singular + '<br>';
 
   if (cfg.majorStopPattern) {
-    html += swatch(cfg.majorStopColor || cfg.color, cfg.shape, 'dot-major') +
-      ' Main bus hubs<br>';
+    html += legendIcon(cfg, cfg.majorStopColor || cfg.color) +
+      ' Main bus stations<br>';
   }
 
   if (scn !== 'none') {
-    html += swatch(cfg.affectedColor, cfg.shape) + ' Inside 100 m flood buffer<br>' +
-      '<span class="unavailable-mark" aria-hidden="true">×</span> Station not accessible<br>' +
-      swatch(cfg.color, 'round', 'dot-ring', cfg.affectedColor) + ' Group incl. affected ' + cfg.noun + '<br>';
+    html += '<span class="legend-affected">' + swatch(cfg.affectedColor, cfg.shape) +
+      '<span class="unavailable-mark" aria-hidden="true">×</span></span>' +
+      ' Not accessible due to flooding<br>';
 
     const st = M[currentMode];
     const all = st.source.getFeatures();
@@ -554,32 +571,62 @@ function updateLegend() {
         html += '<small>' + n + ' of ' + all.length + ' ' + cfg.noun + ' affected (' + SCENARIO_SHORT[scn] + ')</small><br>';
       }
     }
-
-    html += '<br><b>Flood depth</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
-            '<img src="' + legendUrl(FLOOD_CFG.legend) + '" alt="Flood depth legend"><br>';
-    html += '<br><b>Road network risk</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
-      Object.keys(ROAD_COLORS).reverse().map(function (riskClass) {
-        return '<span class="line-swatch" style="background:' + ROAD_COLORS[riskClass] +
-          '"></span> Risk class ' + riskClass + '<br>';
-      }).join('');
   }
+  html += '</div>';
+
+  if (scn !== 'none') {
+    // --- Abschnitt 2: Flood depth ---
+    html += '<div class="legend-flood"><b>Flood depth</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
+      FLOOD_CLASSES.map(function (c) {
+        return '<span class="dot dot-square" style="background:' + c.color + '"></span> ' + c.label + '<br>';
+      }).join('') +
+      '</div>';
+
+    // --- Abschnitt 3: Road network risk ---
+    html += '<div class="legend-roads"><b>Road network risk</b> <small>(' + SCENARIO_SHORT[scn] + ')</small><br>' +
+      Object.keys(ROAD_COLORS).reverse().map(function (riskClass) {
+        return '<span class="line-swatch" style="--line-color:' + ROAD_COLORS[riskClass] +
+          '"></span> Class ' + riskClass + '<br>';
+      }).join('') +
+      '</div>';
+  }
+
   legendEl.innerHTML = html;
 }
 
 // =====================================================================
 // 5. Infokasten (runder "i"-Button)
 // =====================================================================
-const infoBtn = document.getElementById('info-btn');
-const infoBox = document.getElementById('info-box');
+const infoBtn  = document.getElementById('info-btn');
+const infoBox  = document.getElementById('info-box');
+const infoMain = document.getElementById('info-main');
+const infoData = document.getElementById('info-data');
+
+function showInfoPane(which) {
+  infoMain.hidden = (which !== 'main');
+  infoData.hidden = (which !== 'data');
+  infoBox.scrollTop = 0;
+}
 
 function toggleInfo(open) {
   infoBox.hidden = !open;
   infoBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) showInfoPane('main');   // beim Oeffnen immer mit dem Infotext starten
 }
 
 infoBtn.addEventListener('click', function () { toggleInfo(infoBox.hidden); });
 document.getElementById('info-close').addEventListener('click', function () { toggleInfo(false); });
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') toggleInfo(false); });
+
+document.getElementById('info-data-link').addEventListener('click', function (e) {
+  e.preventDefault();
+  showInfoPane('data');
+});
+
+document.getElementById('info-back-link').addEventListener('click', function (e) {
+  e.preventDefault();
+  showInfoPane('main');
+});
 
 // =====================================================================
 // 6. Stationssuche (sucht im gerade gewaehlten Modus)
@@ -654,6 +701,7 @@ function setMode(mode) {
 function setScenario(scn) {
   currentScenario = scn;
   const on = scn !== 'none';
+  document.getElementById('ruissalo-warning').hidden = !on;
   if (on) floodLayer.setSource(makeSource(FLOOD_CFG[scn]));
   floodLayer.setVisible(on);
   Object.keys(roadLayers).forEach(function (k) {
