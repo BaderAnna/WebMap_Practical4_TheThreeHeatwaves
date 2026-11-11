@@ -174,7 +174,7 @@ function ferryIconSvg(color) {
 // ---------- Konfiguration pro Modus ----------
 const MODES = {
   bikes: {
-    label: 'Donkey Republic stations',
+    label: 'Föllari bike stations',
     singular: 'Station',
     noun: 'stations',
     color: DONKEY_ORANGE,
