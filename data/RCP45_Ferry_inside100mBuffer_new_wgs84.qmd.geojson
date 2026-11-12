@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "RCP45_Ferry_inside100mBuffer_new_wgs84",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{"type":"Feature","properties":{"full_id":"n195429279","osm_id":"195429279","osm_type":"node","amenity":null,"shelter":null,"operator":"Turun kaupunki","network":"Föri","ref":"9900","public_transport":"stop_position","name:sv":null,"name:fi":null,"name":"Föri","ferry":"yes","addr:street":null,"addr:postcode":null,"addr:city":null,"website":null,"phone":null,"email":null,"material":null,"locked":null,"height":null,"access":null,"lit":null,"bin":null,"bench":null,"barrier":null,"wheelchair":null,"layer":"amenity_ferry_terminal","path":"C:/Users/lenap/Documents/Ferry_Stops_2.geojson","fid":1,"Risk_class":5},"geometry":{"type":"MultiPoint","coordinates":[[22.248514599999986,60.4409288]]}},
+{"type":"Feature","properties":{"full_id":"n195429283","osm_id":"195429283","osm_type":"node","amenity":null,"shelter":null,"operator":"Turun kaupunki","network":"Föri","ref":"9901","public_transport":"stop_position","name:sv":null,"name:fi":null,"name":"Föri","ferry":"yes","addr:street":null,"addr:postcode":null,"addr:city":null,"website":null,"phone":null,"email":null,"material":null,"locked":null,"height":null,"access":null,"lit":null,"bin":null,"bench":null,"barrier":null,"wheelchair":null,"layer":"amenity_ferry_terminal","path":"C:/Users/lenap/Documents/Ferry_Stops_2.geojson","fid":1,"Risk_class":5},"geometry":{"type":"MultiPoint","coordinates":[[22.247287,60.4413443]]}},
+{"type":"Feature","properties":{"full_id":"Martinsilta Bridge","osm_id":null,"osm_type":null,"amenity":null,"shelter":null,"operator":null,"network":null,"ref":null,"public_transport":null,"name:sv":null,"name:fi":null,"name":null,"ferry":null,"addr:street":null,"addr:postcode":null,"addr:city":null,"website":null,"phone":null,"email":null,"material":null,"locked":null,"height":null,"access":null,"lit":null,"bin":null,"bench":null,"barrier":null,"wheelchair":null,"layer":null,"path":null,"fid":1,"Risk_class":5},"geometry":{"type":"MultiPoint","coordinates":[[22.255186165440776,60.443918692871769]]}}
+]
+}
