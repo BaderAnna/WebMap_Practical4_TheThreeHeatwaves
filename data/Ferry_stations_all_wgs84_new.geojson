@@ -95,6 +95,90 @@
     {
       "type": "Feature",
       "properties": {
+        "full_id": "n195429279",
+        "osm_id": "195429279",
+        "osm_type": "node",
+        "amenity": null,
+        "shelter": null,
+        "operator": "Turun kaupunki",
+        "network": "Föri",
+        "ref": "9900",
+        "public_transport": "stop_position",
+        "name:sv": null,
+        "name:fi": null,
+        "name": "Föri",
+        "ferry": "yes",
+        "addr:street": null,
+        "addr:postcode": null,
+        "addr:city": null,
+        "website": null,
+        "phone": null,
+        "email": null,
+        "material": null,
+        "locked": null,
+        "height": null,
+        "access": null,
+        "lit": null,
+        "bin": null,
+        "bench": null,
+        "barrier": null,
+        "wheelchair": null,
+        "layer": "amenity_ferry_terminal",
+        "path": "C:/Users/lenap/Documents/Ferry_Stops_2.geojson"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.248514599999986,
+          60.44092880000001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "full_id": "n195429283",
+        "osm_id": "195429283",
+        "osm_type": "node",
+        "amenity": null,
+        "shelter": null,
+        "operator": "Turun kaupunki",
+        "network": "Föri",
+        "ref": "9901",
+        "public_transport": "stop_position",
+        "name:sv": null,
+        "name:fi": null,
+        "name": "Föri",
+        "ferry": "yes",
+        "addr:street": null,
+        "addr:postcode": null,
+        "addr:city": null,
+        "website": null,
+        "phone": null,
+        "email": null,
+        "material": null,
+        "locked": null,
+        "height": null,
+        "access": null,
+        "lit": null,
+        "bin": null,
+        "bench": null,
+        "barrier": null,
+        "wheelchair": null,
+        "layer": "amenity_ferry_terminal",
+        "path": "C:/Users/lenap/Documents/Ferry_Stops_2.geojson"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          22.247287000000018,
+          60.4413443
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "full_id": "n2278866490",
         "osm_id": "2278866490",
         "osm_type": "node",
