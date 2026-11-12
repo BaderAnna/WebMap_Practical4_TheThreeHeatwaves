@@ -13,11 +13,11 @@ const map = new ol.Map({
 });
 
 let currentScenario = 'none'; // 'none' | 'rcp45' | 'rcp85'
-let currentMode     = 'bikes'; // 'bikes' | 'bus'
+let currentMode     =  'bikes'; // 'bikes' | 'bus' | 'ferry'
 
 const SCENARIO_SHORT = { rcp45: 'RCP 4.5', rcp85: 'RCP 8.5' };
 
-const DATA_BASE = 'https://raw.githubusercontent.com/BaderAnna/WebMap_Practical4_TheThreeHeatwaves/main/data/';
+const DATA_BASE = './data/';
 
 // =====================================================================
 // 1. Climate layers: flood depth (WMS) + road risk (GeoJSON)
@@ -225,10 +225,10 @@ const MODES = {
     clusterDistance: 50,
     shape: 'diamond',
     clusterText: '#ffffff',
-    stationsUrl: DATA_BASE + 'Ferry_stations_all_wgs84.geojson',
+    stationsUrl: DATA_BASE + 'Ferry_stations_all_wgs84_new.geojson',
     affectedUrls: {
-      rcp45: DATA_BASE + encodeURIComponent('RCP45_Ferry_inside100mBuffer_wgs84.geojson'),
-      rcp85: DATA_BASE + encodeURIComponent('RCP85_Ferry_inside100mBuffer_wgs84.geojson')
+      rcp45: DATA_BASE + encodeURIComponent('RCP45_Ferry_inside100mBuffer_new_wgs84.qmd.geojson'),
+      rcp85: DATA_BASE + encodeURIComponent('RCP85_Ferry_inside100mBuffer_new_wgs84.geojson')
     },
     nameKeys: ['name', 'Name', 'NAME', 'terminal_name', 'nimi', 'Nimi', 'NIMI'],
     capKeys: [],
@@ -250,7 +250,12 @@ document.querySelectorAll('.mode-option').forEach(function (option) {
 function isAffectedIn(modeKey, scn, station) {
   const aff = M[modeKey].affected[scn];
   if (aff.cache.has(station)) return aff.cache.get(station);
-  const c = station.getGeometry().getCoordinates();
+  const geometry = station.getGeometry();
+  if (!geometry) {
+    aff.cache.set(station, false);
+    return false;
+  }
+  const c = geometry.getCoordinates();
   const near = aff.source.getFeaturesInExtent(
     ol.extent.buffer([c[0], c[1], c[0], c[1]], MATCH_TOLERANCE)
   );
@@ -532,7 +537,9 @@ const FLOOD_CLASSES = [
 ];
 
 function swatch(color, shape, extraClass, borderColor) {
-  return '<span class="dot ' + (shape === 'square' ? 'dot-square ' : '') + (extraClass || '') +
+  const shapeClass = shape === 'square' ? 'dot-square ' :
+    (shape === 'diamond' ? 'dot-diamond ' : '');
+  return '<span class="dot ' + shapeClass + (extraClass || '') +
     '" style="background:' + color + (borderColor ? ';border-color:' + borderColor : '') + '"></span>';
 }
 
@@ -561,14 +568,20 @@ function updateLegend() {
 
     const st = M[currentMode];
     const all = st.source.getFeatures();
-    if (all.length) {
+    const stationsWithGeometry = all.filter(function (feature) {
+      return feature.getGeometry() !== null;
+    });
+    if (stationsWithGeometry.length) {
       let n = 0;
-      all.forEach(function (f) { if (isAffectedIn(currentMode, scn, f)) n++; });
+      stationsWithGeometry.forEach(function (f) {
+        if (isAffectedIn(currentMode, scn, f)) n++;
+      });
       const loaded = st.affected[scn].source.getFeatures().length;
       if (loaded > 0 && n === 0) {
         html += '<small>No ' + cfg.singular.toLowerCase() + ' matched the buffer file (check data / coordinates)</small><br>';
       } else {
-        html += '<small>' + n + ' of ' + all.length + ' ' + cfg.noun + ' affected (' + SCENARIO_SHORT[scn] + ')</small><br>';
+        html += '<small>' + n + ' of ' + stationsWithGeometry.length + ' ' + cfg.noun +
+          ' affected (' + SCENARIO_SHORT[scn] + ')</small><br>';
       }
     }
   }

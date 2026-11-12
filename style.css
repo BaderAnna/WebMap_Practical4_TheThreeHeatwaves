@@ -110,6 +110,7 @@ h5 {
 }
 
 #legend .dot-square { border-radius: 2px; }
+#legend .dot-diamond { border-radius: 2px; transform: rotate(45deg); }
 #legend .dot-ring   { box-shadow: none; border-width: 3px; }
 
 /* Linien-Symbol der Straßenklassen (Farbe kommt aus --line-color) */
