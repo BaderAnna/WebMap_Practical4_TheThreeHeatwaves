@@ -223,14 +223,14 @@ const MODES = {
     affectedColor: AFFECTED_FERRY,
     zoomIcon: 14,
     clusterDistance: 50,
-    shape: 'diamond',
+    shape: 'square',
     clusterText: '#ffffff',
     stationsUrl: DATA_BASE + 'Ferry_stations_all_wgs84_new.geojson',
     affectedUrls: {
       rcp45: DATA_BASE + encodeURIComponent('RCP45_Ferry_inside100mBuffer_new_wgs84.qmd.geojson'),
       rcp85: DATA_BASE + encodeURIComponent('RCP85_Ferry_inside100mBuffer_new_wgs84.geojson')
     },
-    nameKeys: ['name', 'Name', 'NAME', 'terminal_name', 'nimi', 'Nimi', 'NIMI'],
+    nameKeys: ['name', 'name:fi', 'name:sv', 'Name', 'NAME', 'terminal_name', 'nimi', 'Nimi', 'NIMI'],
     capKeys: [],
     iconSvg: ferryIconSvg
   },
@@ -470,7 +470,7 @@ function describe(station) {
   const name = pick(props, cfg.nameKeys);
   const cap  = pick(props, cfg.capKeys);
   let html;
-  if (name === null && cap === null) {
+  if (name === null && cap === null && currentMode !== 'ferry') {
     // Attributnamen nicht erkannt: alle Attribute anzeigen
     html = Object.keys(props).filter(function (k) { return k !== 'geometry'; })
       .map(function (k) { return esc(k) + ': ' + esc(props[k]); }).join('<br>');
